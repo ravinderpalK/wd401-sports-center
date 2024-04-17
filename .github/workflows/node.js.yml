@@ -26,11 +26,11 @@ jobs:
         id: run-app
         run: npm run dev & sleep 5
 
-      # Run integration tests
-      # - name: Run integration tests
-      #   run: |
-      #     npm install cypress cypress-json-results
-      #     npx cypress run
+      Run integration tests
+      - name: Run integration tests
+        run: |
+          npm install cypress cypress-json-results
+          npx cypress run
 
   docker:
     needs: run-tests
