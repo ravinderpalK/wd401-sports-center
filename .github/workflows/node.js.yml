@@ -69,6 +69,8 @@ jobs:
       - name: Deploy netlify
         run: curl -X POST -d {} ${{ secrets.NETLIFY_BUILD_HOOK }}
           
+
+          
   # Job to send Slack notifications
   notify:
     # Define the job dependencies
