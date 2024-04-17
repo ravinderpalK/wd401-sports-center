@@ -1,0 +1,101 @@
+name: CI/CD
+# Triggers the workflow on every push events
+on: push
+
+# Jobs
+jobs:
+  # Job to run tests
+
+  run-tests:
+    # Runs on Ubuntu latest version
+
+    runs-on: ubuntu-latest
+      
+    # Steps to execute within the job
+    steps:
+      # Check out repository code
+      - name: Check out repository code
+        uses: actions/checkout@v3
+
+        # Install dependencies
+      - name: Install dependencies
+        run: npm i
+  
+      # Run the app
+      - name: Run the app
+        id: run-app
+        run: npm run dev & sleep 5
+
+      # Run integration tests
+      # - name: Run integration tests
+      #   run: |
+      #     npm install cypress cypress-json-results
+      #     npx cypress run
+
+  docker:
+    needs: run-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build Docker image
+        run: |
+          docker build -f Dockerfile --target production -t raviinderpalsingh/sports-center-prod:latest .
+      - name: Push Docker image to Docker Hub
+        run: |
+          docker push raviinderpalsingh/sports-center-prod:latest
+
+  # Job to deploy the app to production
+  deploy:
+    needs: run-tests
+    runs-on: ubuntu-latest
+    if: needs.run-tests.result == 'success'
+  
+    steps:
+      # Get code from repo
+      - name: Checkout code
+        uses: actions/checkout@v1
+
+      # Deploy to Netlify using our production secrets
+      - name: Deploy netlify
+        run: curl -X POST -d {} ${{ secrets.NETLIFY_BUILD_HOOK }}
+          
+  # Job to send Slack notifications
+  notify:
+    # Define the job dependencies
+    needs: [run-tests, deploy]
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    steps:
+      - name: Send Slack notification on success
+        # Send a Slack notification if the tests and deployment are successful
+        if: ${{ needs.run-tests.result == 'success' && needs.deploy.result == 'success' }}
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "CI/CD process succeeded!" 
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    
+      - name: Send Slack notification on failure
+        if: ${{ needs.run-tests.result != 'success' || needs.deploy.result != 'success' }}
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "*${{ github.workflow }}* failed. Access the details https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}."
+               
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
