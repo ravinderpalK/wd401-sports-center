@@ -22,7 +22,6 @@ const Filter: React.FC<ScrollToNewsDivProps> = (props) => {
   if (sportsState.isLoading)
     return <div>Lading</div>
 
-
   return (
     <div className="my-1 lg:my-4 mx-2 md:mx-3 lg:mx-4 text-xs lg:text-base">
       <h3 className="font-bold pt-1 pb-2 lg:pt-2">{t('favourities')}</h3>
